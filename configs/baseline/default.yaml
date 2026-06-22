@@ -1,0 +1,95 @@
+# Baseline VLM LoRA Finetuning Configuration
+# Simple baseline for comparison with CORA
+
+# ============================================================================
+# EXPERIMENT
+# ============================================================================
+experiment_name: "baseline_finetune"
+output_dir: "runs/baseline"
+
+# ============================================================================
+# MODEL
+# ============================================================================
+model:
+  name: "qwen2.5-vl-7b"
+  hf_model_id: "Qwen/Qwen2.5-VL-7B-Instruct"
+  model_type: "qwen_vl"  # Options: qwen_vl, llava, idefics
+  dtype: "float16"  # Options: float32, float16, bfloat16
+
+# ============================================================================
+# LORA CONFIGURATION
+# ============================================================================
+lora:
+  r: 16  # LoRA rank
+  alpha: 32  # LoRA alpha (scaling factor)
+  dropout: 0.1
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+  bias: "none"  # Options: none, all, lora_only
+  task_type: "CAUSAL_LM"
+
+# ============================================================================
+# TRAINING
+# ============================================================================
+training:
+  num_epochs: 3
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  
+  # Optimizer
+  optimizer: "adamw"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+  
+  # Scheduler
+  lr_scheduler_type: "cosine"
+  
+  # Logging
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 500
+  save_total_limit: 3
+  
+  # Hardware
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  
+  # Reproducibility
+  seed: 42
+
+# ============================================================================
+# DATA
+# ============================================================================
+data_train_csv: "data/quic360/train.csv"
+data_val_csv: null  # Optional validation set
+max_length: 512  # Max sequence length
+
+# ============================================================================
+# EVALUATION
+# ============================================================================
+evaluation:
+  enabled: false
+  strategy: "steps"  # Options: steps, epoch, no
+  eval_steps: 100
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+wandb_enabled: false
+wandb_project: "baseline-vlm"
+wandb_run_name: null  # Auto-generated if null
+
+# ============================================================================
+# SYSTEM
+# ============================================================================
+num_workers: 4
+dataloader_pin_memory: true

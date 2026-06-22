@@ -1,0 +1,82 @@
+# Experiment 7 (B1-fix): PanoAdapt PE + DenseCL with Vision LoRA Fix
+#
+# Fix: Qwen2.5-VL uses fused `attn.qkv` / `attn.proj` in vision encoder,
+# not separate q_proj/k_proj/v_proj. Without explicit vision LoRA targets,
+# DenseCL overlap loss cannot backprop into vision encoder (0 LoRA modules matched).
+#
+# This config adds "attn.qkv" and "attn.proj" to target_modules so PEFT
+# injects LoRA into both LLM attention AND vision encoder attention.
+# PEFT matching: key.endswith(f".{target_key}") — no collision with LLM's "o_proj".
+
+experiment_name: "panoadapt_pe_densecl_qwen25-vl-3b_visionlora"
+output_dir: "runs/baseline"
+max_new_tokens: 128
+
+model:
+  name: "panoadapt_qwen25-vl-3b"
+  hf_model_id: "Qwen/Qwen2.5-VL-3B-Instruct"
+  model_type: "qwen_vl"
+  dtype: "bfloat16"
+  image_size: 224
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.1
+  # Original defaults: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  # Added: "attn.qkv" (fused QKV in Qwen2.5-VL vision encoder)
+  #        "attn.proj" (output projection in Qwen2.5-VL vision encoder)
+  # PEFT uses endswith matching: "attn.qkv" matches "visual.blocks.*.attn.qkv"
+  # No collision: LLM uses "o_proj" (not "attn.proj"), "q_proj" (not "attn.qkv")
+  split_vision_qkv: true
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "attn.proj"
+
+training:
+  num_epochs: 1
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  max_length: 3072
+  seed: 42
+  gradient_checkpointing: true
+  mixed_precision: "bf16"
+  logging_steps: 10
+  save_strategy: "epoch"
+  save_total_limit: 2
+  dataloader_num_workers: 4
+
+data:
+  image_column: "url"
+  instruction_column: "instruction"
+  response_column: "response"
+
+anyres_e2p:
+  hfov_deg: 45.0
+  overlap: 0.0
+  closed_loop_yaw: true
+  pitch_min: 0.0
+  pitch_max: 0.0
+  base_size: 336
+  tile_render_size: 672
+
+panoadapt:
+  model_type: "qwen_vl"
+  rope_type: "3d"
+  spatial_pe: true
+  overlap_loss: true
+  overlap_loss_weight: 0.1
+  overlap_loss_temperature: 0.07
+  overlap_ratio: 0.5
+
+data_train_csv: "runs/baseline/_shared_data/train.csv"
+data_test_csv: "runs/baseline/_shared_data/test.csv"
+
+wandb_enabled: false

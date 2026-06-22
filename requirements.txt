@@ -1,0 +1,44 @@
+# PanoLLaVA Requirements
+# =====================
+
+# --- Core Frameworks ---
+# pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu118
+torch>=1.12.0
+transformers>=4.20.0
+lightning>=2.0.0
+# Make sure to install cuda-toolkit 11.8 or higher for GPU support
+mamba-ssm>=1.2.0
+
+# --- Performance Optimization (Optional but Recommended) ---
+# Flash Attention 2: 메모리 ~30% 절감, 속도 ~2배 향상 (Ampere+ GPU 필요)
+# 설치: pip install flash-attn --no-build-isolation
+# 요구사항: CUDA 11.8+, PyTorch 2.0+, Ampere GPU (A100, RTX 30xx 이상)
+# flash-attn>=2.0.0  # 선택적 (자동 감지 및 fallback to SDPA)
+
+# --- Hugging Face Ecosystem ---
+accelerate
+sentencepiece
+peft>=0.6.0  # Parameter-Efficient Fine-Tuning (LoRA, AdaLoRA, etc.)
+safetensors   # Safe and fast tensor serialization
+
+# --- Data & Utilities ---
+py360convert  # For 360-degree image processing
+omegaconf    # For configuration management
+Pillow       # For image processing (PIL.Image)
+PyYAML       # For parsing config/*.yaml files
+numpy        # Fundamental package for scientific computing
+packaging    # Version parsing needed by transformers
+tqdm         # For progress bars during training and evaluation
+pandas       # For data processing
+matplotlib   # For visualization
+opencv-python-headless  # For image processing (headless for server environments)
+scikit-learn  # For evaluation metrics
+
+# --- Evaluation Metrics ---
+sacrebleu              # For standardized BLEU scores (preferred)
+nltk                   # For METEOR scores (+ BLEU fallback)
+rouge-score            # For ROUGE metrics
+sentence-transformers  # For semantic similarity/SPICE fallback
+pycocoevalcap          # For COCO evaluation metrics (SPICE, CIDEr)
+wandb                  # For experiment tracking
+qwen-vl-utils          # For Qwen2.5-VL models (optional)

@@ -1,0 +1,42 @@
+experiment_name: "trackA_internvl35-2b_native"
+output_dir: "runs/baseline"
+max_new_tokens: 128
+
+model:
+  name: "trackA_internvl35-2b_native"
+  hf_model_id: "OpenGVLab/InternVL3-2B-hf"
+  model_type: "internvl"
+  dtype: "float16"
+  image_size: 448
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.1
+
+training:
+  num_epochs: 1
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  max_length: 1024
+  seed: 42
+  gradient_checkpointing: true
+  mixed_precision: "fp16"
+  logging_steps: 10
+  save_strategy: "epoch"
+  save_total_limit: 2
+  dataloader_num_workers: 4
+
+data:
+  image_column: "url"
+  instruction_column: "instruction"
+  response_column: "response"
+
+data_train_csv: "runs/baseline/_shared_data/train.csv"
+data_test_csv: "runs/baseline/_shared_data/test.csv"
+
+wandb_enabled: false

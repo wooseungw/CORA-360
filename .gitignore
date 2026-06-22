@@ -1,0 +1,57 @@
+.env
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+/.coverage
+/.hypothesis/
+/.benchmarks/
+.DS_Store
+
+data/quic360/train/
+data/quic360/valid/
+data/quic360/test/
+data/
+wandb/
+ablation/
+runs/
+results/
+training.log
+*.log
+analytics_results/
+vis_ex/
+
+# Build/dist artifacts
+build/
+dist/
+*.egg-info/
+
+# Checkpoints and outputs
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.npz
+*.onnx
+outputs/
+artifacts/
+
+# Oversized log kept locally only
+wget-log
+
+# Local tool configs
+.sisyphus/
+oh-my-opencode.json
+opencode.json
+CLAUDE.md
+.vscode/mcp.json
+
+# Temp/test artifacts
+*.jpg
+!docs/**/*.jpg

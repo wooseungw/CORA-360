@@ -1,0 +1,239 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cora"
+version = "2.0.0"
+description = "CORA: Panoramic Vision-Language Model Framework — custom architecture + baseline LoRA finetuning"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "PanoLLaVA Team", email = "your.email@example.com"},
+]
+maintainers = [
+    {name = "PanoLLaVA Team", email = "your.email@example.com"},
+]
+keywords = [
+    "panorama",
+    "multimodal",
+    "llava",
+    "vision-language",
+    "transformers",
+    "pytorch",
+    "huggingface",
+    "ai",
+    "machine-learning",
+    "computer-vision",
+    "nlp",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    # --- Core Frameworks ---
+    "torch>=1.12.0",
+    "transformers>=4.20.0",
+    "lightning>=2.0.0",
+
+    # --- Hugging Face Ecosystem ---
+    "accelerate",
+    "sentencepiece",
+    "peft>=0.6.0",  # Parameter-Efficient Fine-Tuning (LoRA, AdaLoRA, etc.)
+    "safetensors",   # Safe and fast tensor serialization
+
+    # --- Data & Utilities ---
+    "Pillow",      # For image processing (PIL.Image)
+    "PyYAML",      # For parsing config/*.yaml files
+    "numpy",       # Fundamental package for scientific computing
+    "packaging",   # Version parsing needed by transformers
+    "tqdm",        # For progress bars during training and evaluation
+
+    # --- Additional Dependencies ---
+    "pandas",      # For data processing
+    "matplotlib",  # For visualization
+    "opencv-python-headless",  # For image processing (headless for server environments)
+    "scikit-learn",  # For evaluation metrics
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "isort>=5.10.0",
+    "mypy>=0.950",
+    "pre-commit>=2.20.0",
+    "ruff>=0.1.0",
+]
+web = [
+    "gradio>=3.0.0",
+    "streamlit>=1.20.0",
+    "flask>=2.0.0",
+    "fastapi>=0.95.0",
+    "uvicorn>=0.20.0",
+]
+notebook = [
+    "jupyter>=1.0.0",
+    "ipywidgets>=7.7.0",
+    "ipykernel>=6.0.0",
+    "notebook>=6.5.0",
+]
+all = [
+    "cora[dev,web,notebook]",
+]
+
+[project.urls]
+Homepage = "https://github.com/wooseungw/panollava"
+Documentation = "https://github.com/wooseungw/panollava/wiki"
+Repository = "https://github.com/wooseungw/panollava"
+Issues = "https://github.com/wooseungw/panollava/issues"
+Changelog = "https://github.com/wooseungw/panollava/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*", "docs*", "scripts*", "tools*"]
+
+[tool.setuptools.package-data]
+cora = [
+    "configs/*.yaml",
+    "configs/*.json",
+    "configs/**/*.yaml",
+    "configs/**/*.json",
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["cora"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "transformers.*",
+    "lightning.*",
+    "PIL.*",
+    "numpy.*",
+    "pandas.*",
+    "matplotlib.*",
+    "cv2.*",
+    "sklearn.*",
+]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["B011"]  # assert false
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "gpu: marks tests that require GPU",
+]
+
+[tool.coverage.run]
+source = ["src/cora"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

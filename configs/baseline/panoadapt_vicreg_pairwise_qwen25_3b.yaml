@@ -1,0 +1,82 @@
+experiment_name: "trackB_qwen25-3b_vicreg50"
+output_dir: "runs/baseline"
+max_new_tokens: 128
+
+# DEFAULT = "splitfix" recipe (3-seed CIDEr 0.3347 ± 0.004 vs native 0.3257, frozen 0.341).
+# Three coupled fixes make Qwen vision-training stable & beat native:
+#   (1) bf16 (fp16 weights corrupt irrecoverably on a single inf/nan vision step)
+#   (2) split_vision_qkv: fused attn.qkv -> q/k/v Linears so LoRA adapts q/k/v
+#       independently (+0.029 vs fused — the main lever)
+#   (3) window-permute loss fix (code-level reorder_vision_features, auto-applied)
+# Geometry h90/overlap0.5 aligns phys_overlap with overlap_ratio (8 tiles, same tokens).
+
+model:
+  name: "trackB_qwen25-3b_vicreg50"
+  hf_model_id: "Qwen/Qwen2.5-VL-3B-Instruct"
+  model_type: "qwen_vl"
+  dtype: "bfloat16"
+  image_size: 224
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.1
+  # Split the fused Qwen2.5-VL vision attn.qkv into q/k/v Linears before LoRA so
+  # q_proj/k_proj/v_proj adapt vision q/k/v INDEPENDENTLY (+ vision attn.proj).
+  # No "attn.qkv" target — after the split it no longer exists as a Linear.
+  split_vision_qkv: true
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "attn.proj"
+
+training:
+  num_epochs: 1
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  max_length: 3072
+  seed: 42
+  gradient_checkpointing: true
+  mixed_precision: "bf16"
+  logging_steps: 10
+  save_strategy: "epoch"
+  save_total_limit: 2
+  dataloader_num_workers: 4
+
+data:
+  image_column: "url"
+  instruction_column: "instruction"
+  response_column: "response"
+
+anyres_e2p:
+  hfov_deg: 90.0   # h45->h90: align phys_overlap=0.5 with overlap_ratio=0.5 (8 tiles, token-budget unchanged)
+  overlap: 0.5   # 0.0->0.5: physically overlap adjacent tiles by 50% each side
+  closed_loop_yaw: true
+  pitch_min: 0.0
+  pitch_max: 0.0
+  base_size: 336
+  tile_render_size: 672
+
+panoadapt:
+  model_type: "qwen_vl"
+  rope_type: "3d"
+  spatial_pe: true
+  overlap_loss: true
+  overlap_loss_type: "vicreg_pairwise"
+  overlap_loss_weight: 0.1
+  overlap_loss_temperature: 0.07
+  overlap_ratio: 0.5
+  vicreg_sim_weight: 25.0
+  vicreg_var_weight: 25.0
+  vicreg_cov_weight: 1.0
+
+data_train_csv: "runs/baseline/_shared_data/train.csv"
+data_test_csv: "runs/baseline/_shared_data/test.csv"
+
+wandb_enabled: false

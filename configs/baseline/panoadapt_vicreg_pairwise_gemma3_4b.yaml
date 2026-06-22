@@ -1,0 +1,64 @@
+experiment_name: "trackB_gemma3-4b_vicreg50"
+output_dir: "runs/baseline"
+max_new_tokens: 128
+
+model:
+  name: "trackB_gemma3-4b_vicreg50"
+  hf_model_id: "google/gemma-3-4b-it"
+  model_type: "gemma3"
+  dtype: "bfloat16"
+  image_size: 896
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.1
+
+training:
+  num_epochs: 1
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  max_length: 2560   # OOM-fix 2026-05-23: was 3072. Gemma3-4B image_size=896 → 더 많은 vision token으로 24GB GPU에서 cross-entropy logits 단계 OOM. caption ref 평균 ≈19 토큰이라 truncation 위험 없음.
+  seed: 42
+  gradient_checkpointing: true
+  mixed_precision: "bf16"
+  logging_steps: 10
+  save_strategy: "epoch"
+  save_total_limit: 2
+  dataloader_num_workers: 4
+
+data:
+  image_column: "url"
+  instruction_column: "instruction"
+  response_column: "response"
+
+anyres_e2p:
+  hfov_deg: 90.0   # h45->h90: align phys_overlap=0.5 with overlap_ratio=0.5 (8 tiles, token-budget unchanged)
+  overlap: 0.5   # 0.0->0.5: physically overlap adjacent tiles by 50% each side
+  closed_loop_yaw: true
+  pitch_min: 0.0
+  pitch_max: 0.0
+  base_size: 336
+  tile_render_size: 672
+
+panoadapt:
+  model_type: "gemma3"
+  rope_type: "1d"
+  spatial_pe: true
+  overlap_loss: true
+  overlap_loss_type: "vicreg_pairwise"
+  overlap_loss_weight: 0.1
+  overlap_loss_temperature: 0.07
+  overlap_ratio: 0.5
+  vicreg_sim_weight: 25.0
+  vicreg_var_weight: 25.0
+  vicreg_cov_weight: 1.0
+
+data_train_csv: "runs/baseline/_shared_data/train.csv"
+data_test_csv: "runs/baseline/_shared_data/test.csv"
+
+wandb_enabled: false

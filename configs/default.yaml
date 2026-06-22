@@ -1,0 +1,160 @@
+# PanoLLaVA Configuration
+# 개선된 YAML 기반 설정 파일
+
+# 실험 메타 정보
+experiment:
+  name: "default_"  # Config 기반 자동 생성 (vision_language_resampler_crop-strategy)
+  description: "PanoLLaVA multi-stage training with auto-generated experiment name"
+  version: "1.0"
+# 환경 설정
+environment:
+  wandb_project: "panollava-training"
+
+# 기본 경로 설정
+paths:
+  runs_dir: "runs"
+  csv_train: "data/quic360/train.csv"
+  csv_val: "data/quic360/valid.csv"
+  csv_test: "data/quic360/test.csv"  # Evaluation용 test dataset
+  
+# 모델 아키텍처 설정 (모든 스테이지에서 공유)
+models:
+  vision_name: "google/siglip2-so400m-patch16-256" # "google/siglip-large-patch16-224", "DeepGlint-AI/rice-vit-large-patch14-560","google/siglip2-so400m-patch14-224" 
+  language_model_name: "Qwen/Qwen3-0.6B"
+  resampler_type: "bimamba"  # 리샘플러 세부 설정은 코드에서 자동 결정   mlp
+  
+  # Positional Encoding 설정 (projection layer)
+  use_projection_positional_encoding: true  # ✨ false로 비활성화
+  # pe_view_encoding_type: "sinusoidal"
+  # pe_spatial_encoding_type: "sinusoidal"
+  # pe_enable_continuity: true
+  # pe_temperature: 10000.0
+  # pe_dropout: 0.0
+
+# 기본 이미지 처리 설정
+image_processing:
+  crop_strategy: "anyres_e2p"  # {"sliding_window", "e2p", "cubemap", "anyres", "anyres_max", "anyres_e2p", "resize"}
+  # image_size: [560, 560]  # 주석 처리하면 vision_name에서 자동 추론 (예: rice-vit-560 → [560, 560])
+  overlap_ratio: 0.5
+  stitching_mode: "concat"
+  stitch_target_to_view_width: true
+  stitch_interp: "linear"
+  fov_deg: 90.0
+  use_vision_processor: true
+  anyres_max_patches: 9
+  normalize: true
+
+# 훈련 설정
+training:
+  # prefix는 제거됨 - experiment.name을 자동으로 사용
+  stages: ["vision","resampler","finetune"]  # 실행할 스테이지들 (순차 실행)
+  num_workers: 8  # Reduced from 16 to prevent OOM
+  eval_batch_size: 2  # Evaluation batch size (default: 2)
+  system_msg: "You are a helpful assistant. Describe the panorama image."
+  wandb_project: null  # WandB 비활성화 (로그만 사용)
+
+  # 캐시 정리 설정 (메모리 관리)
+  cache_cleanup_interval: 1000  # N 스텝마다 캐시 정리 (0=비활성화)
+
+  # 학습 종료 후 자동 평가 설정 (선택 사항)
+  auto_eval:
+    enabled: true          # true로 설정하면 지정된 단계 종료 시 eval.py 자동 실행
+    stage: "finetune"       # 어떤 스테이지가 끝났을 때 실행할지 (vision/resampler/finetune)
+    checkpoint: "last"      # 사용할 체크포인트 (last/best/artifact)
+    csv: "data/quic360/test.csv"  # 평가용 CSV (paths.csv_test로도 대체 가능)
+
+
+  # 스테이지별 설정 (config.py 구조와 일치)
+  stage_configs:
+    vision:
+      epochs: 1
+      lr: 5e-4  # Increased from 1e-5 (50x increase for better convergence)
+      batch_size: 8
+      accumulate_grad_batches: 1
+      vicreg_loss_weight: 1.0
+      vicreg_mode: "pairwise"  # Options: "pairwise" (default), "batchwise" (original VICReg)
+      # Vision encoder fine-tuning control
+      # 0 = freeze all (default), -1 = unfreeze all, N > 0 = unfreeze last N blocks
+      vision_trainable_blocks: 2  # Keep vision encoder frozen during VICReg training
+      vision_lora_enabled: true
+      vision_lora_target_modules: ["q_proj", "k_proj", "v_proj", "out_proj"]
+
+      # VICReg hyperparameters (reduce weights for lower loss magnitude)
+      vicreg_similarity_weight: 25.0  # Reduced from 25.0
+      vicreg_variance_weight: 25.0    # Reduced from 25.0
+      vicreg_covariance_weight: 1.0   # Keep as is
+
+      # Enable debug logging to monitor convergence
+      debug_vicreg_loss: true  # Set to true only for debugging
+
+      max_text_length: 32
+
+      # 데이터 설정 (여러 CSV 파일 지원)
+      data:
+        csv_train:
+          - "data/quic360/train.csv"
+          - "data/train_stanford_dummy_anno.csv"  # 추가 데이터셋
+          - "data/train_zind_dummy_anno.csv"
+          # - "data/train_structured3d_dummy_anno.csv"    # 추가 데이터셋
+        csv_val:
+          - "data/quic360/valid.csv"
+
+    resampler:
+      epochs: 1
+      lr: 1e-4  # Increased from 2e-6 (50x increase for better convergence)
+      batch_size: 1
+      accumulate_grad_batches: 4
+      vicreg_loss_weight: 0.0
+      vision_trainable_blocks: 0  # Can optionally unfreeze last N layers (e.g., 2-4)
+      max_text_length: 128
+
+      # 데이터 설정
+      # data:
+      #   csv_train: "data/quic360/train.csv"
+      #   csv_val: "data/quic360/valid.csv"
+
+    finetune:
+      epochs: 1
+      lr: 5e-5  # Increased from 2e-6 (25x increase for stable fine-tuning)
+      batch_size: 1
+      accumulate_grad_batches: 4
+      vicreg_loss_weight: 0.0
+      vision_trainable_blocks: 0  # Can optionally unfreeze last N layers for end-to-end tuning
+      max_text_length: 128
+
+      # 데이터 설정
+      # data:
+      #   csv_train: "data/quic360/train.csv"
+      #   csv_val: "data/quic360/valid.csv"
+
+# 생성 설정
+generation:
+  max_new_tokens: 128
+
+# 데이터 설정
+data:
+  train: ["data/quic360/train.csv"]
+  val: ["data/quic360/valid.csv"]
+  csv_test: "data/quic360/test.csv"  # Evaluation용 (eval.py에서 사용)
+  max_text_length: "auto"
+  auto_max_text_length_cap: 256
+
+# 시스템 메시지
+system_messages:
+  default: "You are a helpful assistant. Describe the panorama image."
+
+# LoRA 설정
+lora:
+  use_lora: true
+  rank: 32  
+  alpha: 64
+  dropout: 0.1
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  save_lora_only: false
