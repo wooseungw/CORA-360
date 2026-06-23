@@ -2042,6 +2042,182 @@ class BaselineTrainer:
 
         return metrics
 
+    def _load_inference_model(self, adapter_dir: Optional[str] = None):
+        """Load base model + trained LoRA adapter (+ yaw RoPE) for inference.
+
+        Returns ``(model, processor, tokenizer, yaw_rope, device)``.  Mirrors the
+        model-loading half of :meth:`evaluate` so single-image inference uses the
+        exact same weights and view geometry as test-set evaluation.
+        """
+        cfg = self.config
+        model, processor, tokenizer = BaselineModelRegistry.load_model(cfg.model)
+
+        adapter_path = Path(adapter_dir) if adapter_dir else self.output_dir / "lora_adapter"
+        if adapter_path.exists():
+            from peft import PeftModel
+
+            model = PeftModel.from_pretrained(model, str(adapter_path))
+            logger.info("Loaded LoRA adapter from %s", adapter_path)
+        else:
+            logger.warning("No LoRA adapter at %s — running base model only", adapter_path)
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
+        model.eval()
+
+        yaw_rope = None
+        pa_cfg = cfg.panoadapt
+        if pa_cfg is not None and getattr(pa_cfg, "yaw_rope_enabled", False):
+            run_dir = adapter_path.parent
+            yaw_pt = run_dir / "panoadapt_yaw_rope.pt"
+            if not yaw_pt.exists():
+                yaw_pt_alt = adapter_path / "panoadapt_yaw_rope.pt"
+                if yaw_pt_alt.exists():
+                    yaw_pt = yaw_pt_alt
+            if not yaw_pt.exists():
+                raise FileNotFoundError(
+                    f"yaw_rope_enabled=True but {yaw_pt} (and adapter mirror) missing — "
+                    "train job did not save the yaw RoPE state."
+                )
+            from cora.model.positional import attach_yaw_rope_hook
+
+            target = None
+            for name, mod in model.named_modules():
+                lname = name.lower()
+                if "merger" in lname or "multi_modal_projector" in lname:
+                    target = mod
+                    break
+            if target is None:
+                raise RuntimeError("inference yaw_rope: vision projector not found")
+
+            include_global = True
+            if cfg.effective_pano_view is not None:
+                include_global = bool(cfg.effective_pano_view.include_global)
+
+            state_dict = torch.load(yaw_pt, map_location=device)
+            yaw_rope, _handle = attach_yaw_rope_hook(
+                model=model,
+                target_module=target,
+                rope_dim=pa_cfg.yaw_rope_dim,
+                init_temperature=pa_cfg.yaw_rope_init_temperature,
+                include_global=include_global,
+                state_dict=state_dict,
+            )
+            yaw_rope.eval()
+            logger.info("Inference: PanoramaYawRoPE rehydrated from %s", yaw_pt)
+
+        return model, processor, tokenizer, yaw_rope, device
+
+    @torch.inference_mode()
+    def generate_caption(
+        self,
+        image: Any,
+        prompt: Optional[str] = None,
+        adapter_dir: Optional[str] = None,
+        generation_config: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Caption a single panorama with the trained LoRA adapter.
+
+        ``image`` is a path or a PIL image.  The model + adapter are loaded once
+        and cached on the instance, so repeated calls only pay for generation.
+        Uses the same view construction, yaw-RoPE rehydration and greedy decoding
+        as :meth:`evaluate`, so a single-image result matches the test-set run.
+        """
+        cfg = self.config
+        prompt = prompt or "Describe the image."
+
+        state = getattr(self, "_infer_state", None)
+        if state is None:
+            state = self._load_inference_model(adapter_dir=adapter_dir)
+            self._infer_state = state
+        model, processor, tokenizer, yaw_rope, device = state
+
+        erp_image = Image.open(image).convert("RGB") if isinstance(image, str) else image.convert("RGB")
+
+        pad_token_id = (
+            tokenizer.pad_token_id
+            if tokenizer.pad_token_id is not None
+            else tokenizer.eos_token_id
+        )
+        gen_kwargs: Dict[str, Any] = {
+            "max_new_tokens": cfg.max_new_tokens,
+            "do_sample": False,
+        }
+        if pad_token_id is not None:
+            gen_kwargs["pad_token_id"] = pad_token_id
+        if generation_config:
+            gen_kwargs.update(generation_config)
+        tokenizer.padding_side = "left"
+        is_seq2seq = cfg.model.model_type.lower() in {"blip2", "blip-2"}
+
+        gen_pack = build_generation_inputs_with_meta(cfg, processor, erp_image, prompt)
+        inputs = gen_pack["inputs"]
+        pano_meta_for_yaw = gen_pack["meta"]
+
+        target_dtype = next(model.parameters()).dtype
+        inputs = {
+            k: (
+                v.to(device=device, dtype=target_dtype)
+                if isinstance(v, torch.Tensor) and v.is_floating_point()
+                else v.to(device) if isinstance(v, torch.Tensor) else v
+            )
+            for k, v in inputs.items()
+        }
+        prompt_len = inputs.get("input_ids", torch.tensor([])).shape[-1]
+
+        if yaw_rope is not None and pano_meta_for_yaw.get("pe_mode") == "multiview":
+            yaw_rope.set_meta([pano_meta_for_yaw])
+        try:
+            outputs = model.generate(**inputs, **gen_kwargs)
+        finally:
+            if yaw_rope is not None:
+                yaw_rope.clear_meta()
+        if isinstance(outputs, tuple):
+            outputs = outputs[0]
+
+        return _decode_generation(tokenizer, outputs, prompt_len, is_seq2seq)
+
+
+# ---------------------------------------------------------------------------
+# Generation decoding (shared by evaluate() and single-image inference)
+# ---------------------------------------------------------------------------
+
+
+def _decode_generation(tokenizer, outputs, prompt_len: int, is_seq2seq: bool) -> str:
+    """Decode a ``generate()`` sequence into the model's answer, stripping the prompt.
+
+    Mirrors the decode logic inside :meth:`BaselineTrainer.evaluate` so that
+    single-image CLI output matches the corresponding test-set prediction.
+    ``outputs`` is the raw tensor returned by ``model.generate`` (one sequence
+    per row); only the first row is decoded.
+    """
+    out_len = outputs[0].shape[0]
+    full_text = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+
+    if is_seq2seq or out_len <= prompt_len:
+        pred = full_text
+    else:
+        generated = outputs[0][prompt_len:]
+        pred = tokenizer.decode(generated, skip_special_tokens=True).strip()
+
+    if not pred and full_text:
+        if is_seq2seq or out_len <= prompt_len:
+            pred = full_text
+        else:
+            _turn_markers = [
+                "\nmodel\n",       # Gemma3
+                "\nassistant\n",   # generic
+                "\nASSISTANT\n",  # LLaVA-style
+                "\n[/INST]\n",    # Llama-2
+                "\n[/INST]",      # Llama-2 variant
+            ]
+            for _marker in _turn_markers:
+                if _marker in full_text:
+                    pred = full_text.split(_marker, 1)[-1].strip()
+                    break
+
+    return pred
+
 
 # ---------------------------------------------------------------------------
 # Basic text metrics (no heavy optional deps required)
