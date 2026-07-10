@@ -18,7 +18,6 @@ COPY requirements-repro.txt pyproject.toml README.md LICENSE ./
 COPY src ./src
 COPY configs ./configs
 COPY scripts ./scripts
-COPY reproduce.sh REPRODUCIBILITY.md MODEL_ZOO.md ./
 
 FROM system AS source-check
 RUN python -m compileall -q src scripts
