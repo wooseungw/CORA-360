@@ -6,7 +6,7 @@
     {
       "id": "internvl3-2b-densecl",
       "display_name": "CORA InternVL3-2B DenseCL 50%",
-      "hf_repo": "wooseungw/cora-internvl3-2b-densecl",
+      "hf_repo": "wfwefw/cora-internvl3-2b-densecl",
       "base_model": "OpenGVLab/InternVL3-2B-hf",
       "base_revision": "cb57a075cb75a2e6d1b668b128d48bb00ae321d2",
       "config": "configs/baseline/panoadapt_internvl35_2b.yaml",
@@ -17,7 +17,7 @@
     {
       "id": "internvl3-2b-vicreg",
       "display_name": "CORA InternVL3-2B VICReg 50%",
-      "hf_repo": "wooseungw/cora-internvl3-2b-vicreg",
+      "hf_repo": "wfwefw/cora-internvl3-2b-vicreg",
       "base_model": "OpenGVLab/InternVL3-2B-hf",
       "base_revision": "cb57a075cb75a2e6d1b668b128d48bb00ae321d2",
       "config": "configs/baseline/panoadapt_vicreg_pairwise_internvl35_2b.yaml",
@@ -28,7 +28,7 @@
     {
       "id": "qwen2.5-vl-3b-densecl",
       "display_name": "CORA Qwen2.5-VL-3B DenseCL 50%",
-      "hf_repo": "wooseungw/cora-qwen2.5-vl-3b-densecl",
+      "hf_repo": "wfwefw/cora-qwen2.5-vl-3b-densecl",
       "base_model": "Qwen/Qwen2.5-VL-3B-Instruct",
       "base_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
       "config": "configs/baseline/panoadapt_pe_densecl_qwen25_3b.yaml",
@@ -39,7 +39,7 @@
     {
       "id": "qwen2.5-vl-3b-vicreg",
       "display_name": "CORA Qwen2.5-VL-3B VICReg 50%",
-      "hf_repo": "wooseungw/cora-qwen2.5-vl-3b-vicreg",
+      "hf_repo": "wfwefw/cora-qwen2.5-vl-3b-vicreg",
       "base_model": "Qwen/Qwen2.5-VL-3B-Instruct",
       "base_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
       "config": "configs/baseline/panoadapt_vicreg_pairwise_qwen25_3b.yaml",
@@ -50,7 +50,7 @@
     {
       "id": "gemma3-4b-densecl",
       "display_name": "CORA Gemma3-4B DenseCL 50%",
-      "hf_repo": "wooseungw/cora-gemma3-4b-densecl",
+      "hf_repo": "wfwefw/cora-gemma3-4b-densecl",
       "base_model": "google/gemma-3-4b-it",
       "base_revision": "093f9f388b31de276ce2de164bdc2081324b9767",
       "config": "configs/baseline/panoadapt_gemma3_4b.yaml",
@@ -61,7 +61,7 @@
     {
       "id": "gemma3-4b-vicreg",
       "display_name": "CORA Gemma3-4B VICReg 50%",
-      "hf_repo": "wooseungw/cora-gemma3-4b-vicreg",
+      "hf_repo": "wfwefw/cora-gemma3-4b-vicreg",
       "base_model": "google/gemma-3-4b-it",
       "base_revision": "093f9f388b31de276ce2de164bdc2081324b9767",
       "config": "configs/baseline/panoadapt_vicreg_pairwise_gemma3_4b.yaml",

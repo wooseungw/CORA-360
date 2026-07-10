@@ -4,6 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![CI](https://github.com/wooseungw/CORA-360/actions/workflows/ci.yml/badge.svg)](https://github.com/wooseungw/CORA-360/actions/workflows/ci.yml)
+[![Models on HF](https://img.shields.io/badge/%F0%9F%A4%97%20Models-CORA--360-yellow)](https://huggingface.co/wfwefw)
 
 Official implementation of **CORA** (Consistent Overlap Representation Adaptation), a lightweight,
 model-agnostic framework that adapts off-the-shelf Vision–Language Models (VLMs) to 360°
@@ -88,8 +89,9 @@ url,instruction,response
 
 Training and evaluation are fully config-driven (`configs/baseline/*.yaml`).
 
-For released adapters, checksums, and one-command evaluation, see [MODEL_ZOO.md](MODEL_ZOO.md) and
-[REPRODUCIBILITY.md](REPRODUCIBILITY.md).
+All six trained LoRA adapters are on the [🤗 Hub](https://huggingface.co/wfwefw) and mirrored on the
+GitHub Release. For per-model links, checksums, and one-command evaluation, see
+[MODEL_ZOO.md](MODEL_ZOO.md) and [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
 
 ```bash
 conda activate cora-eccv2026
