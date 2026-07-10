@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![CI](https://github.com/wooseungw/CORA-360/actions/workflows/ci.yml/badge.svg)](https://github.com/wooseungw/CORA-360/actions/workflows/ci.yml)
 
 Official implementation of **CORA** (Consistent Overlap Representation Adaptation), a lightweight,
 model-agnostic framework that adapts off-the-shelf Vision–Language Models (VLMs) to 360°
@@ -10,8 +11,8 @@ panoramic inputs **without modifying the backbone architecture**.
 
 > **Seungwoo Woo, Daewon Jung, Sekyoung Youm** — Dongguk University, Seoul, South Korea
 
-Applied to three architecturally diverse VLMs on QuIC-360, CORA improves CIDEr by up to
-**+0.0204** over the Native baseline (0.3405 → 0.3609) while training only LoRA adapters
+Applied to three architecturally diverse VLMs on QuIC-360, CORA improves three-seed mean CIDEr by up to
+**+0.0166** over the Native baseline (0.3444 → 0.3610) while training only LoRA adapters
 (**~0.6%** of backbone parameters). A key finding: *perspective view decomposition alone
 accounts for 95% of the total gain.*
 
@@ -29,27 +30,26 @@ only LoRA adapters are trained while the backbone stays frozen.
 | **PanoRoPE** | Deterministic, parameter-free positional remapping that encodes the circular panoramic topology (width-axis for M-RoPE; 1-D shift for 1-D RoPE). |
 | **Overlap-consistency loss** | Self-supervised feature alignment at view boundaries (VICReg-pairwise or DenseCL/InfoNCE). |
 
-Evaluated on **InternVL3.5-2B**, **Qwen2.5-VL-3B**, and **Gemma3-4B** using
-[QuIC-360](https://aclanthology.org/2023.emnlp-main.1093/) (query-based panoramic captioning).
+Evaluated on **InternVL3-2B**, **Qwen2.5-VL-3B**, and **Gemma3-4B** using
+[QuIC-360](https://aclanthology.org/2023.findings-emnlp.463/) (query-based panoramic captioning).
 
 ## 📊 Main results (QuIC-360 test, Table 1)
 
-CORA = AnyRes-E2P + PanoRoPE + overlap loss; all rows use LoRA for 1 epoch. *Judge* = LLM-judge score (0–100).
+CORA = AnyRes-E2P + PanoRoPE + overlap loss; all rows use LoRA for 1 epoch. Values are mean ± sample
+standard deviation over seeds 42, 1234, and 7. Machine-readable per-seed values are in
+[`results/table1_multiseed.json`](results/table1_multiseed.json).
 
-| Model | Method | BLEU-4 | METEOR | ROUGE-L | CIDEr | SPICE | Judge |
-|---|---|---|---|---|---|---|---|
-| **InternVL3.5-2B** | Resize | 0.0403 | 0.1096 | 0.2402 | 0.3054 | 0.1566 | 67.6 |
-| | Native | 0.0443 | 0.1111 | 0.2462 | 0.3405 | 0.1661 | 69.2 |
-| | CORA DenseCL 50% | 0.0457 | 0.1137 | 0.2492 | 0.3603 | 0.1720 | **70.6** |
-| | CORA VICReg 50% | 0.0456 | 0.1137 | 0.2491 | **0.3609** | 0.1718 | 70.2 |
-| **Qwen2.5-VL-3B** | Resize | 0.0382 | 0.1113 | 0.2334 | 0.2809 | 0.1435 | 65.3 |
-| | Native | 0.0434 | 0.1125 | 0.2427 | 0.3306 | 0.1548 | 67.9 |
-| | CORA DenseCL 50% | 0.0426 | 0.1135 | 0.2448 | 0.3423 | 0.1613 | 68.0 |
-| | CORA VICReg 50% | 0.0426 | 0.1137 | 0.2446 | **0.3425** | 0.1627 | **68.3** |
-| **Gemma3-4B** | Resize | 0.0421 | 0.1085 | 0.2449 | 0.3383 | 0.1640 | 68.8 |
-| | Native | 0.0420 | 0.1081 | 0.2453 | 0.3363 | 0.1636 | 68.6 |
-| | CORA DenseCL 50% | 0.0437 | 0.1162 | 0.2415 | 0.3362 | 0.1685 | 69.3 |
-| | CORA VICReg 50% | 0.0440 | 0.1180 | 0.2410 | 0.3357 | 0.1700 | **71.8** |
+| Model | Method | BLEU-4 | METEOR | ROUGE-L | CIDEr | SPICE |
+|---|---|---:|---:|---:|---:|---:|
+| **InternVL3-2B** | Native | .0437±.0011 | .1114±.0014 | .2462±.0017 | .3444±.0096 | .1670±.0017 |
+| | CORA DenseCL 50% | .0445±.0007 | .1135±.0006 | .2490±.0009 | .3602±.0016 | .1716±.0011 |
+| | CORA VICReg 50% | .0450±.0008 | .1137±.0006 | .2491±.0003 | **.3610±.0047** | .1722±.0011 |
+| **Qwen2.5-VL-3B** | Native | .0422±.0004 | .1122±.0010 | .2409±.0008 | .3257±.0028 | .1547±.0012 |
+| | CORA DenseCL 50% | .0439±.0002 | .1139±.0002 | .2437±.0008 | .3389±.0010 | .1601±.0005 |
+| | CORA VICReg 50% | .0427±.0002 | .1142±.0008 | .2439±.0010 | **.3410±.0016** | .1612±.0010 |
+| **Gemma3-4B** | Native | .0422±.0001 | .1088±.0002 | .2441±.0011 | .3369±.0048 | .1647±.0014 |
+| | CORA DenseCL 50% | .0444±.0002 | .1154±.0007 | .2441±.0013 | .3417±.0011 | .1662±.0007 |
+| | CORA VICReg 50% | .0441±.0006 | .1140±.0014 | .2455±.0014 | **.3484±.0031** | .1669±.0019 |
 
 DenseCL and VICReg-pairwise produce near-identical CIDEr (formulation-agnostic). Gains correlate
 with the vision encoder's gradient accessibility; see the paper for the full ablation and analysis.
@@ -60,14 +60,8 @@ with the vision encoder's gradient accessibility; see the paper for the full abl
 
 ```bash
 # 1) Create the environment
-conda create -n pano python=3.12 -y
-conda activate pano
-
-# 2) Install the package (editable)
-pip install -e ".[dev]"
-
-# 3) (optional) Caption metrics: BLEU / METEOR / ROUGE-L / CIDEr / SPICE
-bash install_eval_metrics.sh   # SPICE needs a JDK (apt install default-jdk)
+conda env create -f environment.yml
+conda activate cora-eccv2026
 ```
 
 Backbones are pulled from the HuggingFace Hub on first use
@@ -78,9 +72,12 @@ Gemma3 is a gated model — request access and run `huggingface-cli login`.
 
 ## 📁 Dataset
 
-CORA is trained and evaluated on **QuIC-360**. Provide CSVs with columns `url, instruction, response`
-and point each config at them (default: `runs/baseline/_shared_data/{train,test}.csv`).
-QuIC-360 images are hosted on Flickr; see [docs/SETUP.md](docs/SETUP.md) for the download workflow.
+CORA is trained and evaluated on **QuIC-360**. Provide CSVs with columns `url, instruction, response`.
+The exact 7,929/5,349 split and row order can be verified without redistributing the annotations:
+
+```bash
+./reproduce.sh data-check /path/to/train.csv /path/to/test.csv
+```
 
 ```
 url,instruction,response
@@ -91,8 +88,11 @@ url,instruction,response
 
 Training and evaluation are fully config-driven (`configs/baseline/*.yaml`).
 
+For released adapters, checksums, and one-command evaluation, see [MODEL_ZOO.md](MODEL_ZOO.md) and
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md).
+
 ```bash
-conda activate pano
+conda activate cora-eccv2026
 export CUDA_VISIBLE_DEVICES=0
 
 # Train (LoRA, 1 epoch) — writes to runs/baseline/<experiment_name>/
@@ -111,7 +111,7 @@ python scripts/llm_judge_eval.py --help
 
 Each config's `experiment_name` maps to its output directory under `runs/baseline/`.
 
-| Paper row | InternVL3.5-2B | Qwen2.5-VL-3B | Gemma3-4B |
+| Paper row | InternVL3-2B | Qwen2.5-VL-3B | Gemma3-4B |
 |---|---|---|---|
 | **Native** | `native_internvl35_2b.yaml` | `native_qwen25_3b.yaml` | `native_gemma3_4b.yaml` |
 | **CORA DenseCL 50%** | `panoadapt_internvl35_2b.yaml` | `panoadapt_pe_densecl_qwen25_3b.yaml` | `panoadapt_gemma3_4b.yaml` |
@@ -125,7 +125,7 @@ FoV / view-count sweep (Table S5) → `e4a–e4d_internvl35-2b_*.yaml`.
 ## 🗂️ Repository structure
 
 ```
-panollava/
+CORA-360/
 ├── src/cora/              # CORA package (pip install -e .)
 │   ├── baseline/          #   LoRA finetune + eval pipeline (panoadapt)
 │   ├── model/             #   AnyRes-E2P, PanoRoPE, projectors, vision encoder
@@ -158,8 +158,9 @@ Built on [Transformers](https://github.com/huggingface/transformers),
 [PEFT](https://github.com/huggingface/peft), and
 [PyTorch Lightning](https://github.com/Lightning-AI/lightning). Backbones:
 [InternVL](https://github.com/OpenGVLab/InternVL), [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL),
-and [Gemma](https://ai.google.dev/gemma). Benchmark: [QuIC-360](https://aclanthology.org/2023.emnlp-main.1093/).
+and [Gemma](https://ai.google.dev/gemma). Benchmark: [QuIC-360](https://aclanthology.org/2023.findings-emnlp.463/).
 
 ## 📄 License
 
-Released under the [MIT License](LICENSE).
+The CORA source code is released under the [MIT License](LICENSE). Upstream model and dataset licenses still
+apply; in particular, Gemma adapter users must accept the Gemma terms before accessing the base model.

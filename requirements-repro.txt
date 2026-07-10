@@ -1,0 +1,23 @@
+# Environment used for the ECCV 2026 camera-ready experiments.
+# CUDA wheels are platform-specific; install PyTorch first when a different CUDA runtime is required.
+torch==2.8.0
+torchvision==0.23.0
+transformers==4.56.2
+peft==0.17.1
+accelerate==1.10.1
+lightning==2.5.5
+safetensors==0.6.2
+qwen-vl-utils==0.0.14
+py360convert==1.0.4
+numpy==2.2.6
+pandas==2.3.3
+Pillow==11.0.0
+PyYAML==6.0.3
+opencv-python-headless==4.12.0.88
+scikit-learn==1.7.2
+nltk==3.9.1
+rouge-score==0.1.2
+sacrebleu==2.5.1
+pycocoevalcap==1.2
+tqdm==4.67.1
+requests==2.32.5

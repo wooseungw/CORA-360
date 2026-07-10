@@ -3,15 +3,8 @@
 ## 1. Environment
 
 ```bash
-# 1) Create the conda environment
-conda create -n pano python=3.12 -y
-conda activate pano
-
-# 2) Install the package (editable)
-pip install -e ".[dev]"
-
-# 3) (optional) Caption metrics: BLEU / METEOR / ROUGE-L / CIDEr / SPICE
-bash install_eval_metrics.sh
+conda env create -f environment.yml
+conda activate cora-eccv2026
 ```
 
 ---
@@ -61,7 +54,8 @@ location: `export HF_HOME=/your/storage/path`.
 
 ## 3. Dataset — QuIC-360
 
-CORA is trained and evaluated on **QuIC-360**, a panoramic VQA dataset.
+CORA is trained and evaluated on **QuIC-360**, a query-focused panoramic captioning dataset. The canonical
+paper and dataset description are at <https://aclanthology.org/2023.findings-emnlp.463/>.
 
 ### CSV format
 
@@ -76,21 +70,19 @@ url,instruction,response
 | `instruction` | Question text |
 | `response` | Ground-truth answer |
 
-### Downloading the images (Flickr)
+### Obtaining and verifying the data
 
-QuIC-360 images are hosted on Flickr and must be downloaded separately.
+QuIC-360 images and annotations are not redistributed by this repository. Obtain them from the dataset
+authors or another source authorized to redistribute them. Do not substitute Refer360: it is a different
+dataset that shares some panoramic-image provenance.
 
 ```bash
-# 1) Obtain the source CSVs with Flickr URLs from the Refer360 release
-#    (see the Refer360 repository below).
-
-# 2) Download the images (16 parallel threads)
+# Once authorized source CSVs are under data/quic360/, download reachable Flickr images.
 python scripts/download_quic360_images.py
-#    Edit SAVE_DIR at the top of the script to change the target directory.
-#    Default: data/quic360/images
-```
 
-> Refer360 dataset: <https://github.com/volkancirik/refer360>
+# Verify exact ECCV 2026 split, row order, queries, and references.
+./reproduce.sh data-check data/quic360/train.csv data/quic360/test.csv
+```
 
 ### Pointing the CSVs at local images
 
@@ -131,6 +123,7 @@ data_test_csv:  "runs/baseline/_shared_data/test.csv"
 
 ```bash
 conda activate pano
+conda activate cora-eccv2026
 
 # Smoke test (single GPU, ~5 min; requires the dataset from §3)
 python scripts/smoke_panoadapt.py
@@ -154,8 +147,8 @@ export CUDA_VISIBLE_DEVICES=0     # GPU 0
 export CUDA_VISIBLE_DEVICES=0,1   # multi-GPU
 ```
 
-The full config-to-table mapping (which YAML reproduces which row) is in the
-[README](../README.md#reproducing-table-1).
+The full config-to-table and weight mapping is in [MODEL_ZOO.md](../MODEL_ZOO.md). The canonical released
+adapter path is `./reproduce.sh evaluate internvl3-2b-vicreg /path/to/test.csv`.
 
 ---
 

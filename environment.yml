@@ -1,0 +1,9 @@
+name: cora-eccv2026
+channels:
+  - defaults
+dependencies:
+  - python=3.12.11
+  - pip
+  - pip:
+      - -r requirements-repro.txt
+      - -e .

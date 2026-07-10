@@ -2,13 +2,9 @@ experiment_name: "trackB_qwen25-3b_vicreg50"
 output_dir: "runs/baseline"
 max_new_tokens: 128
 
-# DEFAULT = "splitfix" recipe (3-seed CIDEr 0.3347 ± 0.004 vs native 0.3257, frozen 0.341).
-# Three coupled fixes make Qwen vision-training stable & beat native:
-#   (1) bf16 (fp16 weights corrupt irrecoverably on a single inf/nan vision step)
-#   (2) split_vision_qkv: fused attn.qkv -> q/k/v Linears so LoRA adapts q/k/v
-#       independently (+0.029 vs fused — the main lever)
-#   (3) window-permute loss fix (code-level reorder_vision_features, auto-applied)
-# Geometry h90/overlap0.5 aligns phys_overlap with overlap_ratio (8 tiles, same tokens).
+# ECCV release recipe: three-seed CIDEr 0.3410 ± 0.0016 vs native 0.3257 ± 0.0028.
+# This config intentionally matches the released adapter target set. Experimental
+# split-vision-QKV variants are not used for the Table 1 VICReg row.
 
 model:
   name: "trackB_qwen25-3b_vicreg50"
@@ -21,16 +17,11 @@ lora:
   r: 32
   alpha: 64
   dropout: 0.1
-  # Split the fused Qwen2.5-VL vision attn.qkv into q/k/v Linears before LoRA so
-  # q_proj/k_proj/v_proj adapt vision q/k/v INDEPENDENTLY (+ vision attn.proj).
-  # No "attn.qkv" target — after the split it no longer exists as a Linear.
-  split_vision_qkv: true
   target_modules:
     - "q_proj"
     - "k_proj"
     - "v_proj"
     - "o_proj"
-    - "attn.proj"
 
 training:
   num_epochs: 1

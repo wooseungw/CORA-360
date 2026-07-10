@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use CORA, please cite the ECCV 2026 paper and software release."
+title: "CORA: Overlap-Consistent View Decomposition for Adapting Vision-Language Models to 360-Degree Panoramas"
+type: software
+version: 2.0.0
+date-released: 2026-07-10
+authors:
+  - family-names: Woo
+    given-names: Seungwoo
+  - family-names: Jung
+    given-names: Daewon
+  - family-names: Youm
+    given-names: Sekyoung
+repository-code: "https://github.com/wooseungw/CORA-360"
+license: MIT
+preferred-citation:
+  type: conference-paper
+  title: "Overlap-Consistent View Decomposition for Adapting Vision-Language Models to 360-Degree Panoramas"
+  authors:
+    - family-names: Woo
+      given-names: Seungwoo
+    - family-names: Jung
+      given-names: Daewon
+    - family-names: Youm
+      given-names: Sekyoung
+  conference:
+    name: European Conference on Computer Vision
+  year: 2026
