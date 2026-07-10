@@ -30,9 +30,9 @@ git push origin v2.0.0-eccv2026
 
 - [ ] Confirm all six Hugging Face repositories are public and each checksum verifies.
 - [ ] Confirm Gemma's gated-base-model notice is visible on both Gemma adapter cards.
-- [ ] Create a GitHub Release from `v2.0.0-eccv2026` and attach the source archive.
+- [x] Create a GitHub Release from `v2.0.0-eccv2026` and attach the source archive.
 - [ ] Enable the GitHub-Zenodo integration, create the release, then add the minted DOI to `CITATION.cff` and README.
-- [ ] Run the GitHub Actions workflow on the public tag and retain the successful run URL.
+- [x] Run the GitHub Actions workflow on the public tag and retain the successful run URL.
 - [ ] Perform one clean-machine evaluation with `./reproduce.sh evaluate` and archive the generated `metrics.json`.
 
 Do not publish dataset images or annotations unless their redistribution license has been verified. The row-level
