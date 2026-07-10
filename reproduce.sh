@@ -47,7 +47,6 @@ case "$ACTION" in
     MODEL_ID="$2"
     TEST_CSV="$3"
     CONFIG="$(lookup "$MODEL_ID" config)"
-    HF_REPO="$(lookup "$MODEL_ID" hf_repo)"
     OUTPUT_DIR="$ROOT/reproductions/$MODEL_ID"
     mkdir -p "$OUTPUT_DIR"
     prepare_config "$MODEL_ID" "$ROOT/$CONFIG" "$OUTPUT_DIR/config.yaml" "$OUTPUT_DIR"
@@ -58,10 +57,34 @@ PY
 )"
     ADAPTER_DIR="$OUTPUT_DIR/$MODEL_NAME/lora_adapter"
     mkdir -p "$ADAPTER_DIR" "$OUTPUT_DIR"
-    python - "$HF_REPO" "$ADAPTER_DIR" <<'PY'
-from huggingface_hub import snapshot_download
+    python - "$MODEL_ID" "$ADAPTER_DIR" <<'PY'
+from pathlib import Path
+import shutil
 import sys
-snapshot_download(repo_id=sys.argv[1], local_dir=sys.argv[2])
+import tarfile
+import tempfile
+from urllib.request import urlopen
+
+model_id, destination = sys.argv[1:]
+url = (
+    "https://github.com/wooseungw/CORA-360/releases/download/"
+    f"v2.0.0-eccv2026/cora-{model_id}.tar.gz"
+)
+destination_path = Path(destination).resolve()
+with tempfile.NamedTemporaryFile(suffix=".tar.gz") as archive:
+    with urlopen(url) as response:
+        shutil.copyfileobj(response, archive)
+    archive.flush()
+    with tarfile.open(archive.name, "r:gz") as handle:
+        for member in handle.getmembers():
+            parts = Path(member.name).parts[1:]
+            if not parts:
+                continue
+            target = destination_path.joinpath(*parts).resolve()
+            if destination_path not in target.parents:
+                raise RuntimeError(f"Unsafe archive member: {member.name}")
+            member.name = str(Path(*parts))
+            handle.extract(member, destination_path)
 PY
     python "$ROOT/scripts/baseline_eval.py" --config "$OUTPUT_DIR/config.yaml" --test-csv "$TEST_CSV" \
       --train-output-dir "$OUTPUT_DIR" --output-dir "$OUTPUT_DIR/eval"

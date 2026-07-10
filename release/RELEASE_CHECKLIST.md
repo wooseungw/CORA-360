@@ -12,6 +12,7 @@ the [Hugging Face model release checklist](https://huggingface.co/docs/hub/en/mo
 - [x] Package adapters as `safetensors` with model cards, configs, manifests, and checksums.
 - [x] Add CI for source compilation, release-artifact tests, lint, and the Docker source stage.
 - [x] Document upstream model and dataset licensing constraints.
+- [x] Attach all six adapter archives and an archive checksum file to the GitHub Release.
 
 ## Maintainer-authenticated publication
 
